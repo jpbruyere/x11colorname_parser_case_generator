@@ -12,16 +12,16 @@ public static class program {
 			bool chainTest = false;
 			if (chain.Length > 0) {
 				if (chain.Length == 1)
-					Console.WriteLine ($"{tabs(tab)}if (tolower(value[{level-chain.Length}]) == \'{chain[0]}\') {{//up");
+					Console.WriteLine ($"{tabs(tab)}if (tolower(name[{level-chain.Length}]) == L\'{chain[0]}\') {{//up");
 				else
-					Console.WriteLine ($"{tabs(tab)}if (!strncasecmp(&value[{level-chain.Length}],\"{chain.ToString()}\",{chain.Length})) {{//up");
+					Console.WriteLine ($"{tabs(tab)}if (!wcsncasecmp (&name[{level-chain.Length}],L\"{chain.ToString()}\",{chain.Length})) {{//up");
 				tab++;
 				chain.Clear();
 				chainTest = true;
 			}
-			Console.WriteLine ($"{tabs(tab)}switch(tolower(value[{level}])) {{");
+			Console.WriteLine ($"{tabs(tab)}switch(tolower(name[{level}])) {{");
 			foreach (IGrouping<char, color> elt in elts) {
-				Console.WriteLine ($"{tabs(tab)}case '{char.ToLower(elt.Key)}':");
+				Console.WriteLine ($"{tabs(tab)}case L'{char.ToLower(elt.Key)}':");
 				if (elt.Count() == 1) {
 					Console.WriteLine ($"{tabs(tab+1)}return 0x{elt.First().Value:X8};//{elt.First().Name}");
 					continue;
@@ -45,7 +45,7 @@ public static class program {
 			IGrouping<char, color> elt = elts.First();
 			if (elt.Count() == 1) {
 				color c = elt.First();
-				Console.WriteLine ($"{tabs(tab)}if (!strcasecmp(&value[{level}],\"{c.Name.Substring(level).ToLower()}\"))");
+				Console.WriteLine ($"{tabs(tab)}if (!wcscasecmp (&name[{level}],L\"{c.Name.Substring(level).ToLower()}\"))");
 				Console.WriteLine ($"{tabs(tab+1)}return 0x{c.Value:X8};//{c.Name}");
 				Console.WriteLine ($"{tabs(tab)}else");
 				Console.WriteLine ($"{tabs(tab+1)}return 0;//UNKNOWN COLOR");
@@ -55,9 +55,9 @@ public static class program {
 			color ed = elt.FirstOrDefault (e=>e.Name.Length == level + 1);
 			if (ed != null) {
 				if (chain.Length == 1)
-					Console.WriteLine ($"{tabs(tab)}if (tolower(value[{level-chain.Length+1}]) == \'{chain[0]}\') {{//down");
+					Console.WriteLine ($"{tabs(tab)}if (tolower(name[{level-chain.Length+1}]) == L\'{chain[0]}\') {{//down");
 				else
-					Console.WriteLine ($"{tabs(tab)}if (!strncasecmp(&value[{level-chain.Length+1}],\"{chain.ToString()}\",{chain.Length})) {{//down");
+					Console.WriteLine ($"{tabs(tab)}if (!wcsncasecmp (&name[{level-chain.Length+1}],L\"{chain.ToString()}\",{chain.Length})) {{//down");
 				Console.WriteLine ($"{tabs(tab+1)}if (valLenght == {level + 1})");
 				Console.WriteLine ($"{tabs(tab+2)}return 0x{ed.Value:X8};//{ed.Name}");
 				chain.Clear();
@@ -81,10 +81,13 @@ public static class program {
 		}*/
 
 	}
+	static string[] SplitCamelCase(string source) {
+    	return System.Text.RegularExpressions.Regex.Split(source, @"(?<!^)(?=[A-Z])");
+	}
 	public static void Main () {
 		List<color> colors = new List<color>(1000);
 	// See https://aka.ms/new-console-template for more information
-		using (Stream s = new FileStream ("../x11-colors.csv", FileMode.Open)) {
+		using (Stream s = new FileStream ("x11-colors.csv", FileMode.Open)) {
 			using (StreamReader sr = new StreamReader (s)) {
 				while (!sr.EndOfStream) {
 					string l = sr.ReadLine ();
@@ -94,6 +97,9 @@ public static class program {
 						Name = tmp[0],
 						Value = UInt32.Parse (cv, System.Globalization.NumberStyles.HexNumber)
 					});
+					string[] cnp = SplitCamelCase(tmp[0]);
+					string cc = cnp.Aggregate ((a,b)=> a.ToUpper () + "_" + b.ToUpper ());
+
 				}
 			}
 		}
